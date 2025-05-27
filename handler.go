@@ -29,7 +29,7 @@ func loadConfig() *Config {
 		StorageAccoutName: os.Getenv("STORAGE_ACCOUNT_NAME"),
 		StorageAccountKey: os.Getenv("STORAGE_ACCOUNT_KEY"),
 		ContainerName:     getEnvOrDefault("CONTAINER_NAME", "$web"),
-		APIKey:            getEnvOrDefault("API_KEY", ""),
+		APIKey:            os.Getenv("API_KEY"),
 		BaseURL:           os.Getenv("BASE_URL"),
 	}
 }
@@ -50,8 +50,26 @@ func generateUniqueFilename(originalName string) string {
 }
 
 func upload(w http.ResponseWriter, r *http.Request) {
-	config := loadConfig()
-	fmt.Fprint(w, config.ContainerName)
+
+}
+
+func validateConfig(config *Config) error {
+	if config.StorageAccoutName == "" {
+		return fmt.Errorf("STORAGE_ACCOUNT_NAME is required")
+	}
+	if config.StorageAccountKey == "" {
+		return fmt.Errorf("STORAGE_ACCOUNT_KEY is required")
+	}
+	if config.ContainerName == "" {
+		return fmt.Errorf("CONTAINER_NAME is required")
+	}
+	if config.APIKey == "" {
+		return fmt.Errorf("API_KEY is required")
+	}
+	if config.BaseURL == "" {
+		return fmt.Errorf("BASE_URL is required")
+	}
+	return nil
 }
 
 func main() {
@@ -59,6 +77,11 @@ func main() {
 	listenAddr := ":8080"
 	if val, ok := os.LookupEnv("FUNCTIONS_CUSTOMHANDLER_PORT"); ok {
 		listenAddr = ":" + val
+	}
+
+	config := loadConfig()
+	if err := validateConfig(config); err != nil {
+		log.Fatalf("Invalid configuration: %v", err)
 	}
 
 	http.HandleFunc(("/api/upload"), func(w http.ResponseWriter, r *http.Request) {
